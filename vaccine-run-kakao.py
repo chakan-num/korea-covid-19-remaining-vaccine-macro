@@ -227,7 +227,7 @@ async def try_reservation(vaccine_type, organization):
     data = {"from": "Map", "vaccineCode": vaccine_type, "orgCode": organization_code, "distance": "null"}
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(reservation_url, data=json.dumps(data), headers=Headers.headers_vacc, cookies=jar) as response:
+        async with session.post(reservation_url, data=json.dumps(data), headers=Headers.headers_vacc, cookies=jar, verify_ssl=False) as response:
             response_json = await response.json()
             logging.info(response_json)
             print(response_json)
