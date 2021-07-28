@@ -226,6 +226,8 @@ async def try_reservation(vaccine_type, organization):
     reservation_url = 'https://vaccine.kakao.com/api/v1/reservation'
     data = {"from": "Map", "vaccineCode": vaccine_type, "orgCode": organization_code, "distance": "null"}
 
+#TODO: post method fix -> response occur error
+
     async with aiohttp.ClientSession() as session:
         async with session.post(reservation_url, data=json.dumps(data), headers=Headers.headers_vacc, cookies=jar, verify_ssl=False) as response:
             response_json = await response.json()
