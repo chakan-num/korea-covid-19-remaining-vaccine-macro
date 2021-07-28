@@ -291,6 +291,7 @@ async def find_vaccine(vaccine_type, top_x, top_y, bottom_x, bottom_y):
             await asyncio.gather(*[try_reservation(vaccine_type, x) for x in json_data])
 
             '''
+            
             for x in json_data:
                 if x.get('status') == "AVAILABLE" or x.get('leftCounts') != 0:
                     done = try_reservation(x.get('orgCode'), vaccine_type)
