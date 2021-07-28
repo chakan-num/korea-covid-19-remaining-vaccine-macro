@@ -11,11 +11,13 @@ from playsound import playsound
 from datetime import datetime
 
 import urllib3
+import logging
 
-search_time = 0.2  # 잔여백신을 해당 시간마다 한번씩 검색합니다. 단위: 초
+search_time = 0.1  # 잔여백신을 해당 시간마다 한번씩 검색합니다. 단위: 초
 urllib3.disable_warnings()
 
 jar = browser_cookie3.chrome(domain_name=".kakao.com")
+logging.basicConfig(filename='log.log', level=logging.INFO, format='%(asctime)s %(message)s')
 
 
 # 기존 입력 값 로딩
@@ -185,12 +187,14 @@ def try_reservation(organization_code, vaccine_type):
         try:
             data = {"from": "Map", "vaccineCode": vaccine_type, "orgCode": organization_code, "distance": "null"}
             response = requests.post(reservation_url, data=json.dumps(data), headers=Headers.headers_vacc, cookies=jar,
-                                     verify=False, timeout=1)
+                                     verify=False, timeout=2)
             response_json = json.loads(response.text)
         except requests.exceptions.Timeout:
             continue
 
         print(response_json)
+        logging.info(response_json)
+
         for key in response_json:
             value = response_json[key]
             if key != 'code':
