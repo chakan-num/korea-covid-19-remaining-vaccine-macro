@@ -24,7 +24,7 @@ search_time = 0.1  # 잔여백신을 해당 시간마다 한번씩 검색합니�
 urllib3.disable_warnings()
 
 jar = browser_cookie3.chrome(domain_name=".kakao.com")
-logging.basicConfig(filename='try_log.log', level=logging.INFO)
+logging.basicConfig(filename='try_log.log', level=logging.INFO, format='%(asctime)s %(message)s')
 
 
 # 기존 입력 값 로딩
@@ -219,7 +219,7 @@ async def try_reservation(vaccine_type, organization):
     if organization.get('status') != "AVAILABLE" and organization.get('leftCounts') == 0:
         return False
 
-    logging.info(time.time(), " : ", organization)
+    logging.info(organization)
     print(organization)
 
     organization_code = organization.get('orgCode')
@@ -228,9 +228,9 @@ async def try_reservation(vaccine_type, organization):
 
     async with aiohttp.ClientSession() as session:
         async with session.post(reservation_url, data=json.dumps(data), headers=Headers.headers_vacc, cookies=jar) as response:
-            logging.info(time.time(), " : ", response.json())
-            print(response.json())
             response_json = await response.json()
+            logging.info(response_json)
+            print(response_json)
 
             '''
             session = Session()
