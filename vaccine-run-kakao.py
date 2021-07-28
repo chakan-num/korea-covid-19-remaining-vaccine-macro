@@ -242,6 +242,7 @@ def find_vaccine(vaccine_type, top_x, top_y, bottom_x, bottom_y):
                 #pretty_print(response.text)
                 json_data = json.loads(response.text).get("organizations")
             except requests.exceptions.Timeout:
+                print("병원 검색이 원활하지 않아 재검색을 하겠습니다.")
                 continue
             end_time = time.time()
 
