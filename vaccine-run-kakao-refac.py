@@ -32,153 +32,15 @@ from datetime import datetime
 import urllib3
 
 # skip config for test or debug
-skip_config = False
 
 search_time = 0.1  # 잔여백신을 해당 시간마다 한번씩 검색합니다. 단위: 초
 urllib3.disable_warnings()
 logging.basicConfig(filename='vaccine-run-kakao.log', level=logging.INFO, format='%(asctime)s %(message)s')
 
-cookiejar = browser_cookie3.chrome(domain_name=".kakao.com")
-
-# 기존 입력 값 로딩
-def load_config():
-    config_parser = configparser.ConfigParser()
-    if os.path.exists('config.ini') and not skip_config:
-        try:
-            config_parser.read('config.ini')
-
-            while True:
-                skip_input = str.lower(input("기존에 입력한 정보로 재검색하시겠습니까? Y/N : "))
-                if skip_input == "y":
-                    skip_input = True
-                    break
-                elif skip_input == "n":
-                    skip_input = False
-                    break
-                else:
-                    print("Y 또는 N을 입력해 주세요.")
-
-            if skip_input:
-                # 설정 파일이 있으면 최근 로그인 정보 로딩
-                configuration = config_parser['config']
-                previous_used_type = configuration["VAC"]
-                previous_top_x = configuration["topX"]
-                previous_top_y = configuration["topY"]
-                previous_bottom_x = configuration["botX"]
-                previous_bottom_y = configuration["botY"]
-                return previous_used_type, previous_top_x, previous_top_y, previous_bottom_x, previous_bottom_y
-            else:
-                return None, None, None, None, None
-        except ValueError:
-            print("config 에러 발생 : ", ValueError)
-            return None, None, None, None, None
-    return None, None, None, None, None
-
-
-#TODO: get new cookie after login
-
-
-'''
-
-
-def check_user_info_loaded():
-    user_info_api = 'https://vaccine.kakao.com/api/v1/user'
-    user_info_response = requests.get(user_info_api, headers=Headers.headers_vacc, cookies=cookiejar, verify=False)
-    user_info_json = json.loads(user_info_response.text)
-
-    if user_info_json.get('error'):
-        logging.info("사용자 정보를 불러오는데 실패하였습니다.")
-        print("사용자 정보를 불러오는데 실패하였습니다.")
-        print("Chrome 브라우저에서 카카오에 제대로 로그인되어있는지 확인해주세요.")
-        print("로그인이 되어 있는데도 안된다면, 카카오톡에 들어가서 잔여백신 알림 신청을 한번 해보세요. 정보제공 동의가 나온다면 동의 후 다시 시도해주세요.")
-        close()
-    else:
-        user_info = user_info_json.get("user")
-        for key in user_info:
-            value = user_info[key]
-            # print(key, value)
-            if key != 'status':
-                continue
-            if key == 'status' and value == "NORMAL":
-                logging.info("사용자 정보를 불러오는데 성공했습니다.")
-                print("사용자 정보를 불러오는데 성공했습니다.")
-                break
-            else:
-                logging.info("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
-                print("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
-                close()
-'''
-
-
-def input_config():
-    if skip_config:
-        vaccine_type = "VEN00013"
-        top_x = 126.87761193824504
-        top_y = 37.49369473195565
-        bottom_x = 126.87214034327664
-        bottom_y = 37.49806590215318
-        return vaccine_type, top_x, top_y, bottom_x, bottom_y
-
-    vaccine_type = None
-    while vaccine_type is None:
-        print("아래 예약이 가능한 백신종류입니다.")
-        print("화이자          : 1")
-        print("모더나          : 2")
-        print("아스크라제네카    : 3")
-        print("얀센            : 4")
-
-        user_input = input("예약시도 진행할 백신을 알려주세요.")
-        if user_input == 1:
-            vaccine_type = "VEN00013"
-        elif user_input == 2:
-            vaccine_type = "VEN00014"
-        elif user_input == 3:
-            vaccine_type = "VEN00015"
-        elif user_input == 4:
-            vaccine_type = "VEN00016"
-        else:
-            print("올바른 백신을 골라주세요.")
-            vaccine_type = None
-
-    print("잔여백신을 조회할 범위(좌표)를 입력하세요. ")
-    top_x = None
-    while top_x is None:
-        top_x = input(f"조회할 범위의 좌측상단 경도(x)값을 넣어주세요. ex) 127.~~: ").strip()
-
-    top_y = None
-    while top_y is None:
-        top_y = input(f"조회할 범위의 좌측상단 위도(y)값을 넣어주세요 ex) 37.~~: ").strip()
-
-    bottom_x = None
-    while bottom_x is None:
-        bottom_x = input(f"조회할 범위의 우측하단 경도(x)값을 넣어주세요 ex) 127.~~: ").strip()
-
-    bottom_y = None
-    while bottom_y is None:
-        bottom_y = input(f"조회할 범위의 우측하단 위도(y)값을 넣어주세요 ex) 37.~~: ").strip()
-
-    dump_config(vaccine_type, top_x, top_y, bottom_x, bottom_y)
-    return vaccine_type, top_x, top_y, bottom_x, bottom_y
-
-
-def dump_config(vaccine_type, top_x, top_y, bottom_x, bottom_y):
-    config_parser = configparser.ConfigParser()
-    config_parser['config'] = {}
-    conf = config_parser['config']
-    conf['VAC'] = vaccine_type
-    conf["topX"] = top_x
-    conf["topY"] = top_y
-    conf["botX"] = bottom_x
-    conf["botY"] = bottom_y
-
-    with open("config.ini", "w") as config_file:
-        config_parser.write(config_file)
-
 
 def close():
     print("프로그램을 종료하겠습니다.")
     input("Press Enter to close...")
-
 
 
 def resource_path(relative_path):
@@ -191,7 +53,7 @@ def play_tada():
     playsound(resource_path('tada.mp3'))
 
 
-def pretty_print(json_string):
+def json_print(json_string):
     json_object = json.loads(json_string)
     for org in json_object["organizations"]:
         if org.get('status') == "CLOSED" or org.get('status') == "EXHAUSTED":
@@ -321,6 +183,7 @@ class kakao_user_info:
         self._user_name = ""
         self._user_status = ""
 
+    def load(self):
         self.__load_cookie()
         self.__load_kakao_info()
 
@@ -328,7 +191,7 @@ class kakao_user_info:
         self._user_cookiejar = browser_cookie3.chrome(domain_name=".kakao.com")
         self._user_cookie = requests.utils.dict_from_cookiejar(self._user_cookiejar)
 
-    def reload_cookie(self):
+    def __reload_cookie(self):
         self.__load_cookie()
 
     def __load_kakao_info(self):
@@ -346,7 +209,7 @@ class kakao_user_info:
                 webbrowser.open('https://accounts.kakao.com/login?continue=https://vaccine-map.kakao.com/map2?v=1')
                 login_try = str.lower(input("로그인을 완료하셨습니까? Y/N"))
                 if login_try == "y":
-                    self.reload_cookie()
+                    self.__reload_cookie()
                     continue
                 elif "y" == str.lower(input("종료하시겠습니까? Y/N")):
                     return False
@@ -375,17 +238,128 @@ class kakao_user_info:
 
 
 
-
-
-
 class vaccine_reservation:
+    def __init__(self):
 
-class
+    async def try_reservation(self):
+
+    async def find_vaccine(self):
+
+
+class config_vaccine_reservation:
+    def __init__(self):
+        self._vaccine_type = ""
+        self._top_left_longitude = ""
+        self._top_left_latitude = ""
+        self._bottom_right_longitude = ""
+        self._bottom_right_latitude = ""
+
+    def __dump_config(self, vaccine_type,
+                    _top_left_longitude, _top_left_latitude,
+                    _bottom_right_longitude, _bottom_right_latitude):
+        config_parser = configparser.ConfigParser()
+        config_parser['config'] = {}
+        conf = config_parser['config']
+        conf['vaccine_type'] = vaccine_type
+        conf['top_left_longitude'] = _top_left_longitude
+        conf['top_left_latitude'] = _top_left_latitude
+        conf['bottom_right_longitude'] = _bottom_right_longitude
+        conf['bottom_right_latitude'] = _bottom_right_latitude
+
+        with open("config.ini", "w") as config_file:
+            config_parser.write(config_file)
+        return True
+
+    def __set_config(self):
+        while True:
+            print("\n아래 예약이 가능한 백신종류입니다.")
+            print("화이자          : 1")
+            print("모더나          : 2")
+            print("아스크라제네카    : 3")
+            print("얀센            : 4")
+
+            user_input = input("예약시도 진행할 백신을 알려주세요.")
+            if user_input == 1:
+                self._vaccine_type = "VEN00013"
+                break
+            elif user_input == 2:
+                self._vaccine_type = "VEN00014"
+                break
+            elif user_input == 3:
+                self._vaccine_type = "VEN00015"
+                break
+            elif user_input == 4:
+                self._vaccine_type = "VEN00016"
+                break
+            else:
+                print("올바른 백신을 골라주세요.")
+
+        print("\n잔여백신을 조회할 범위(좌표)를 입력하세요. ")
+
+        self._top_left_longitude = input(f"조회할 범위의 좌측상단 경도(x)값을 넣어주세요. ex) 127.~~: ").strip()
+        print(self._top_left_longitude)
+
+        self._top_left_latitude = input(f"조회할 범위의 좌측상단 위도(y)값을 넣어주세요 ex) 37.~~: ").strip()
+        print(self._top_left_latitude)
+
+        self._bottom_right_longitude = input(f"조회할 범위의 우측하단 경도(x)값을 넣어주세요 ex) 127.~~: ").strip()
+        print(self._bottom_right_longitude)
+
+        self._bottom_right_latitude = input(f"조회할 범위의 우측하단 위도(y)값을 넣어주세요 ex) 37.~~: ").strip()
+        print(self._bottom_right_latitude)
+
+        self.__dump_config(self._vaccine_type,
+                           self._top_left_longitude, self._top_left_latitude,
+                           self._bottom_right_longitude, self._bottom_right_latitude)
+        return True
+
+    def load_config(self):
+        config_parser = configparser.ConfigParser()
+        while os.path.exists('config.ini'):
+            try:
+                config_parser.read('config.ini')
+                config = config_parser['config']
+                pre_vaccine_type = config['vaccine_type']
+                pre_top_left_longitude = config['top_left_longitude']
+                pre_top_left_latitude = config['top_left_latitude']
+                pre_bottom_right_longitude = config['bottom_right_longitude']
+                pre_bottom_right_latitude = config['bottom_right_latitude']
+
+            except configparser.Error as error:
+                logging.warning(error)
+                print("설정파일을 읽는동안 에러가 발생하였습니다.")
+                print("설정을 다시 입력해주세요.")
+                return self.__set_config()
+
+            print("----------------------------------------")
+            print("예약할 백신 : %s" % pre_vaccine_type)
+            print("조회할 좌측상단 경도(x)값 : %s" % pre_top_left_longitude)
+            print("조회할 좌측상단 위도(y)값 : %s" % pre_top_left_latitude)
+            print("조회할 우측하단 경도(x)값 : %s" % pre_bottom_right_longitude)
+            print("조회할 우측하단 위도(y)값 : %s" % pre_bottom_right_latitude)
+            use_dump_config = str.lower(input("기존에 입력한 위 정보로 재검색하시겠습니까? Y/N : "))
+
+            if use_dump_config == "y":
+                self._vaccine_type = pre_vaccine_type
+                self._top_left_longitude = pre_top_left_longitude
+                self._top_left_latitude = pre_top_left_latitude
+                self._bottom_right_longitude = pre_bottom_right_longitude
+                self._bottom_right_latitude = pre_bottom_right_latitude
+                return True
+            elif use_dump_config == "n":
+                return self.__set_config()
+            else:
+                print("잘못된 입력입니다. Y 또는 N을 입력해 주세요.")
+
+        print("백신조회를 위한 기본설정을 진행하겠습니다.")
+        self.__set_config()
+
 
 
 def main():
     print("사용자 정보를 불러오고 있습니다.")
     user_info = kakao_user_info()
+    user_info.load()
 
     if user_info.get_user_status() == None:
         logging.info("사용자 정보가 올바르지 않습니다.")
@@ -396,6 +370,7 @@ def main():
         print("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
         return close()
 
+
     #load config
 
     #search and reserve vaccine
@@ -403,11 +378,6 @@ def main():
 
 
 
-    previous_used_type, previous_top_x, previous_top_y, previous_bottom_x, previous_bottom_y = load_config()
-    if previous_used_type is None:
-        vaccine_type, top_x, top_y, bottom_x, bottom_y = input_config()
-    else:
-        vaccine_type, top_x, top_y, bottom_x, bottom_y = previous_used_type, previous_top_x, previous_top_y, previous_bottom_x, previous_bottom_y
     asyncio.run(find_vaccine(vaccine_type, top_x, top_y, bottom_x, bottom_y))
 
 
