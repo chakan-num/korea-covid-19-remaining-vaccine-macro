@@ -7,6 +7,7 @@
 # - async programming on vaccine find, reservation
 # - logging result, error
 # - timeout and retry on vaccine find
+# - design pattern refactoring
 
 # minor modified
 # - console print formatting
