@@ -77,39 +77,7 @@ def load_config():
 
 #TODO: get new cookie after login
 
-def check_user_info_loaded(self):
-    print("사용자 정보를 불러오고 있습니다.")
 
-    while True:
-        user_info_api = 'https://vaccine.kakao.com/api/v1/user'
-        user_info_response = requests.get(user_info_api, headers=Headers.headers_vacc, cookies=self.cookiejar, verify=False)
-        user_info_json = json.loads(user_info_response.text)
-        if user_info_json.get('error'):
-            logging.info("사용자 정보를 불러오는데 실패하였습니다.")
-            print("사용자 정보를 불러오는데 실패하였습니다.")
-            print("Chrome 브라우저에서 카카오에 제대로 로그인되어있는지 확인해주세요.")
-            print("로그인이 되어 있는데도 안된다면, 카카오톡에 들어가서 잔여백신 알림 신청을 한번 해보세요. 정보제공 동의가 나온다면 동의 후 다시 시도해주세요.")
-
-            webbrowser.open('https://accounts.kakao.com/login?continue=https://vaccine-map.kakao.com/map2?v=1')
-            login_try = str.lower(input("로그인을 완료하셨습니까? Y/N"))
-            if login_try == "y":
-                self.cookiejar = browser_cookie3.chrome(domain_name=".kakao.com")
-                continue
-            elif "y" == str.lower(input("종료하시겠습니까? Y/N")):
-                close()
-            else:
-                print("입력이 잘못되었습니다. 사용자 정보를 다시 불러옵니다.")
-        else:
-            user_info = user_info_json.get("user")
-
-            if user_info['status'] == "NORMAL":
-                logging.info("사용자 정보를 불러오는데 성공했습니다.")
-                print("사용자 정보를 불러오는데 성공했습니다.")
-                break
-            else:
-                print("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
-                logging.info("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
-                close()
 '''
 
 
@@ -210,7 +178,6 @@ def dump_config(vaccine_type, top_x, top_y, bottom_x, bottom_y):
 def close():
     print("프로그램을 종료하겠습니다.")
     input("Press Enter to close...")
-    sys.exit()
 
 
 
@@ -347,16 +314,107 @@ async def find_vaccine(vaccine_type, top_x, top_y, bottom_x, bottom_y):
             close()
 
 
+class kakao_user_info:
+    def __init__(self):
+        self._user_cookiejar = None
+        self._user_cookie = None
+        self._user_name = ""
+        self._user_status = ""
+
+        self.__load_cookie()
+        self.__load_kakao_info()
+
+    def __load_cookie(self):
+        self._user_cookiejar = browser_cookie3.chrome(domain_name=".kakao.com")
+        self._user_cookie = requests.utils.dict_from_cookiejar(self._user_cookiejar)
+
+    def reload_cookie(self):
+        self.__load_cookie()
+
+    def __load_kakao_info(self):
+        while True:
+            user_info_api = 'https://vaccine.kakao.com/api/v1/user'
+            user_info_response = requests.get(user_info_api, headers=Headers.headers_vacc, cookies=self._user_cookiejar, verify=False)
+            user_info_json = json.loads(user_info_response.text)
+
+            if user_info_json.get('error'):
+                logging.info("사용자 정보를 불러오는데 실패하였습니다.")
+                print("사용자 정보를 불러오는데 실패하였습니다.")
+                print("Chrome 브라우저에서 카카오에 제대로 로그인되어있는지 확인해주세요.")
+                print("로그인이 되어 있는데도 안된다면, 카카오톡에 들어가서 잔여백신 알림 신청을 한번 해보세요. 정보제공 동의가 나온다면 동의 후 다시 시도해주세요.")
+
+                webbrowser.open('https://accounts.kakao.com/login?continue=https://vaccine-map.kakao.com/map2?v=1')
+                login_try = str.lower(input("로그인을 완료하셨습니까? Y/N"))
+                if login_try == "y":
+                    self.reload_cookie()
+                    continue
+                elif "y" == str.lower(input("종료하시겠습니까? Y/N")):
+                    return False
+                else:
+                    print("입력이 잘못되었습니다. 사용자 정보를 다시 불러옵니다.")
+            else:
+                user_info = user_info_json.get("user")
+                self._user_name = user_info['name']
+                self._user_status = user_info['status']
+
+                logging.info("사용자 정보를 불러오는데 성공했습니다.")
+                print("사용자 정보를 불러오는데 성공했습니다.")
+                break
+        return True
+
+
+
+    def get_cookiejar(self):
+        return self._user_cookiejar
+
+    def get_cookie(self):
+        return self._user_cookie
+
+    def get_user_status(self):
+        return self._user_status
+
+
+
+
+
+
+class vaccine_reservation:
+
+class
+
 
 def main():
-    check_user_info_loaded()
+    print("사용자 정보를 불러오고 있습니다.")
+    user_info = kakao_user_info()
+
+    if user_info.get_user_status() == None:
+        logging.info("사용자 정보가 올바르지 않습니다.")
+        print("사용자 정보가 올바르지 않습니다.")
+        return close()
+    elif user_info.get_user_status() == "ALREADY_RESERVED":
+        logging.info("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
+        print("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
+        return close()
+
+    #load config
+
+    #search and reserve vaccine
+
+
+
+
     previous_used_type, previous_top_x, previous_top_y, previous_bottom_x, previous_bottom_y = load_config()
     if previous_used_type is None:
         vaccine_type, top_x, top_y, bottom_x, bottom_y = input_config()
     else:
         vaccine_type, top_x, top_y, bottom_x, bottom_y = previous_used_type, previous_top_x, previous_top_y, previous_bottom_x, previous_bottom_y
     asyncio.run(find_vaccine(vaccine_type, top_x, top_y, bottom_x, bottom_y))
-    close()
+
+
+
+
+
+    return close()
 
 
 # ===================================== run ===================================== #
