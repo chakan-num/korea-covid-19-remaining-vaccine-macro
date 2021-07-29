@@ -1,7 +1,20 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+'''
+# forked from SJang1/korea-covid-19-remaining-vaccine-macro
+#
+# major modified
+# - async programming on vaccine find, reservation
+# - logging result, error
+# - timeout and retry on vaccine find
+
+# minor modified
+# - console print formatting
+# - adding debugging config
+# - refactoring on duplicated or unnecessary code
+'''
+
 import asyncio
-import webbrowser
 import aiohttp
 import logging
 
@@ -16,22 +29,20 @@ from playsound import playsound
 from datetime import datetime
 
 import urllib3
-from requests import Session
-from requests.adapters import HTTPAdapter
-from urllib3 import Retry
+
+# skip config for test or debug
+skip_config = False
 
 search_time = 0.1  # 잔여백신을 해당 시간마다 한번씩 검색합니다. 단위: 초
 urllib3.disable_warnings()
+logging.basicConfig(filename='vaccine-run-kakao.log', level=logging.INFO, format='%(asctime)s %(message)s')
 
-#TODO: getting cookie other ways(not compatible with aiohttp)
-jar = browser_cookie3.chrome(domain_name=".kakao.com")
-logging.basicConfig(filename='try_log.log', level=logging.INFO, format='%(asctime)s %(message)s')
-
+cookiejar = browser_cookie3.chrome(domain_name=".kakao.com")
 
 # 기존 입력 값 로딩
 def load_config():
     config_parser = configparser.ConfigParser()
-    if os.path.exists('config.ini'):
+    if os.path.exists('config.ini') and not skip_config:
         try:
             config_parser.read('config.ini')
 
@@ -58,21 +69,22 @@ def load_config():
             else:
                 return None, None, None, None, None
         except ValueError:
-            print("config 에러 발생 : " + ValueError)
+            print("config 에러 발생 : ", ValueError)
             return None, None, None, None, None
     return None, None, None, None, None
 
+
+#TODO: get new cookie after login
 '''
 def check_user_info_loaded():
     print("사용자 정보를 불러오고 있습니다.")
 
     while True:
-#        global jar
         user_info_api = 'https://vaccine.kakao.com/api/v1/user'
-        user_info_response = requests.get(user_info_api, headers=Headers.headers_vacc, cookies=jar, verify=False)
-#        jar = user_info_response.cookies
+        user_info_response = requests.get(user_info_api, headers=Headers.headers_vacc, cookies=cookiejar, verify=False)
         user_info_json = json.loads(user_info_response.text)
         if user_info_json.get('error'):
+            logging.info("사용자 정보를 불러오는데 실패하였습니다.")
             print("사용자 정보를 불러오는데 실패하였습니다.")
             print("Chrome 브라우저에서 카카오에 제대로 로그인되어있는지 확인해주세요.")
             print("로그인이 되어 있는데도 안된다면, 카카오톡에 들어가서 잔여백신 알림 신청을 한번 해보세요. 정보제공 동의가 나온다면 동의 후 다시 시도해주세요.")
@@ -87,31 +99,23 @@ def check_user_info_loaded():
             user_info = user_info_json.get("user")
 
             if user_info['status'] == "NORMAL":
+                logging.info("사용자 정보를 불러오는데 성공했습니다.")
                 print("사용자 정보를 불러오는데 성공했습니다.")
                 break
             else:
                 print("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
+                logging.info("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
                 close()
-'''
-'''
-            for key in user_info:
-                value = user_info[key]
-                if key != 'status':
-                    continue
-                if key == 'status' and value == "NORMAL":
-                    print("사용자 정보를 불러오는데 성공했습니다.")
-                    break
-                else:
-                    print("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
-                    close()
 '''
 
 
 def check_user_info_loaded():
     user_info_api = 'https://vaccine.kakao.com/api/v1/user'
-    user_info_response = requests.get(user_info_api, headers=Headers.headers_vacc, cookies=jar, verify=False)
+    user_info_response = requests.get(user_info_api, headers=Headers.headers_vacc, cookies=cookiejar, verify=False)
     user_info_json = json.loads(user_info_response.text)
+
     if user_info_json.get('error'):
+        logging.info("사용자 정보를 불러오는데 실패하였습니다.")
         print("사용자 정보를 불러오는데 실패하였습니다.")
         print("Chrome 브라우저에서 카카오에 제대로 로그인되어있는지 확인해주세요.")
         print("로그인이 되어 있는데도 안된다면, 카카오톡에 들어가서 잔여백신 알림 신청을 한번 해보세요. 정보제공 동의가 나온다면 동의 후 다시 시도해주세요.")
@@ -124,48 +128,64 @@ def check_user_info_loaded():
             if key != 'status':
                 continue
             if key == 'status' and value == "NORMAL":
+                logging.info("사용자 정보를 불러오는데 성공했습니다.")
                 print("사용자 정보를 불러오는데 성공했습니다.")
                 break
             else:
+                logging.info("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
                 print("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
                 close()
 
 
 
-
 def input_config():
+    if skip_config:
+        vaccine_type = "VEN00013"
+        top_x = 126.87761193824504
+        top_y = 37.49369473195565
+        bottom_x = 126.87214034327664
+        bottom_y = 37.49806590215318
+        return vaccine_type, top_x, top_y, bottom_x, bottom_y
+
     vaccine_type = None
     while vaccine_type is None:
-        print("예약시도할 백신 코드를 알려주세요.")
-        print("화이자         : VEN00013")
-        print("모더나         : VEN00014")
-        print("아스크라제네카   : VEN00015")
-        print("얀센          : VEN00016")
-        print("아무거나       : ANY")
-        #vaccine_type = str.upper(input("예약시도할 백신 코드를 알려주세요."))
-        vaccine_type = "VEN00013"
+        print("아래 예약이 가능한 백신종류입니다.")
+        print("화이자          : 1")
+        print("모더나          : 2")
+        print("아스크라제네카    : 3")
+        print("얀센            : 4")
 
-    print("사각형 모양으로 백신범위를 지정한 뒤, 해당 범위 안에 있는 백신을 조회해서 남은 백신이 있으면 Chrome 브라우저를 엽니다.")
+        user_input = input("예약시도 진행할 백신을 알려주세요.")
+        if user_input == 1:
+            vaccine_type = "VEN00013"
+        elif user_input == 2:
+            vaccine_type = "VEN00014"
+        elif user_input == 3:
+            vaccine_type = "VEN00015"
+        elif user_input == 4:
+            vaccine_type = "VEN00016"
+        else:
+            print("올바른 백신을 골라주세요.")
+            vaccine_type = None
+
+    print("잔여백신을 조회할 범위(좌표)를 입력하세요. ")
     top_x = None
     while top_x is None:
-        #top_x = input(f"사각형의 위쪽 좌측 x값을 넣어주세요. 127.xxxxxx: ").strip()
-        top_x = 126.91759051002093
+        top_x = input(f"조회할 범위의 좌측상단 경도(x)값을 넣어주세요. ex) 127.~~: ").strip()
 
     top_y = None
     while top_y is None:
-        #top_y = input(f"사각형의 위쪽 좌측 y값을 넣어주세요 37.xxxxxx: ").strip()
-        top_y = 37.47654763831696
+        top_y = input(f"조회할 범위의 좌측상단 위도(y)값을 넣어주세요 ex) 37.~~: ").strip()
 
     bottom_x = None
     while bottom_x is None:
-        #bottom_x = input(f"사각형의 아래쪽 우측 x값을 넣어주세요 127.xxxxxx: ").strip()
-        bottom_x = 126.83878401599266
+        bottom_x = input(f"조회할 범위의 우측하단 경도(x)값을 넣어주세요 ex) 127.~~: ").strip()
 
     bottom_y = None
     while bottom_y is None:
-        #bottom_y = input(f"사각형의 아래쪽 우측 y값을 넣어주세요 37.xxxxxx: ").strip()
-        bottom_y = 37.539490173708266
+        bottom_y = input(f"조회할 범위의 우측하단 위도(y)값을 넣어주세요 ex) 37.~~: ").strip()
 
+    dump_config(vaccine_type, top_x, top_y, bottom_x, bottom_y)
     return vaccine_type, top_x, top_y, bottom_x, bottom_y
 
 
@@ -188,12 +208,6 @@ def close():
     input("Press Enter to close...")
     sys.exit()
 
-
-def clear():
-    if 'win' in sys.platform.lower():
-        os.system('cls')
-    else:
-        os.system('clear')
 
 
 def resource_path(relative_path):
@@ -240,45 +254,34 @@ class Headers:
     }
 
 
-#async def try_reservation(organization_code, vaccine_type, aiohttp=None):
 async def try_reservation(vaccine_type, organization):
 
-    '''
     if organization.get('status') != "AVAILABLE" and organization.get('leftCounts') == 0:
         return False
-    '''
+
     logging.info(organization)
-    print(organization)
+    print("%s에 %s를 예약을 진행합니다." % (organization['orgName'], vaccine_type))
 
     organization_code = organization.get('orgCode')
     reservation_url = 'https://vaccine.kakao.com/api/v1/reservation'
     data = {"from": "Map", "vaccineCode": vaccine_type, "orgCode": organization_code, "distance": "null"}
 
-#TODO: error caused by cookie(not compatible with browoser_cookie3)
-    async with aiohttp.ClientSession(cookies=jar) as session:
-        async with session.post(reservation_url, data=json.dumps(data), headers=Headers.headers_vacc, verify_ssl=False) as response:
+    cookies = requests.utils.dict_from_cookiejar(cookiejar)
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(reservation_url, data=json.dumps(data), headers=Headers.headers_vacc, cookies=cookies, verify_ssl=False) as response:
             response_json = await response.json()
             logging.info(response_json)
-            print(response_json)
 
-            '''
-            session = Session()
-            retry = Retry(total=3, backoff_factor=0, status_forecelist=[408,502,503,504])
-            session.mount('https://', HTTPAdapter(max_retries=retry))
-
-            reservation_url = 'https://vaccine.kakao.com/api/v1/reservation'
-            data = {"from": "Map", "vaccineCode": vaccine_type, "orgCode": organization_code, "distance": "null"}
-            response = session.post(reservation_url, data=json.dumps(data), headers=Headers.headers_vacc, cookies=jar, verify=False)
-            response_json = json.loads(response.text)
-            '''
             if 'code' in response_json:
                 if response_json['code'] == "SUCCESS":
                     print("신청이 완료되었습니다.")
                     organization_code_success = response_json.get("organization")
+                    logging.info("SUCCESS %s %s" % (organization['orgName'], vaccine_type))
                     print(
                         f"병원이름: {organization_code_success.get('orgName')}\t전화번호: {organization_code_success.get('phoneNumber')}\t주소: {organization_code_success.get('address')}\t운영시간: {organization_code_success.get('openHour')}")
                     play_tada()
-                    close()
+                    return True
                 else:
                     print(response_json['desc'])
                     return False
@@ -286,50 +289,17 @@ async def try_reservation(vaccine_type, organization):
                 print("ERROR. 응답이 없습니다.")
                 return False
 
-    '''
-    for key in response_json:
-        value = response_json[key]
-        if key != 'code':
-            continue
-        if key == 'code' and value == "NO_VACANCY":
-            print("잔여백신 접종 신청이 선착순 마감되었습니다.")
-            return False
-#            time.sleep(0.08)
-        elif key == 'code' and value == "SUCCESS":
-            print("백신접종신청 성공!!!")
-            organization_code_success = response_json.get("organization")
-            print(
-                f"병원이름: {organization_code_success.get('orgName')}\t전화번호: {organization_code_success.get('phoneNumber')}\t주소: {organization_code_success.get('address')}\t운영시간: {organization_code_success.get('openHour')}")
-            play_tada()
-            close()
-        else:
-            print("ERROR. 아래 메시지를 보고, 예약이 신청된 병원 또는 1339에 예약이 되었는지 확인해보세요.")
-            print(response.text)
-            close()
-    '''
-
-# ===================================== def ===================================== #
-
-
-# Get Cookie
-# driver = selenium.webdriver.Firefox()
-# driver.get("https://cs.kakao.com")
-# pickle.dump( driver.get_cookies() , open("cookies.pkl","wb"))
-# cookies = pickle.load(open("cookies.pkl", "rb"))
-# for cookie in cookies:
-#     driver.add_cookie(cookie)
-#     print(cookie)
-
 
 
 async def find_vaccine(vaccine_type, top_x, top_y, bottom_x, bottom_y):
     url = 'https://vaccine-map.kakao.com/api/v2/vaccine/left_count_by_coords'
     data = {"bottomRight": {"x": bottom_x, "y": bottom_y}, "onlyLeft": False, "order": "latitude",
             "topLeft": {"x": top_x, "y": top_y}}
-    done = False
-    found = None
 
-    while not done:
+    print("--------------------------------------------------")
+    print("잔여백신 조회를 시작하겠습니다.")
+
+    while True:
         try:
             time.sleep(search_time)
             start_time = time.time()
@@ -345,34 +315,28 @@ async def find_vaccine(vaccine_type, top_x, top_y, bottom_x, bottom_y):
             print(datetime.now())
             print("조회 병원 수 : %d " % len(json_data), "검색 시간 : %s 초" % round((end_time-start_time), 3))
 
-#            await asyncio.gather(try_reservation(x.get('orgCode'), vaccine_type) for x in json_data)
-            await asyncio.gather(*[try_reservation(vaccine_type, x) for x in json_data])
-
-            '''
-            
-            for x in json_data:
-                if x.get('status') == "AVAILABLE" or x.get('leftCounts') != 0:
-                    done = try_reservation(x.get('orgCode'), vaccine_type)
-            '''
-
-        except requests.exceptions.Timeout as timeouterror:
-            print("Timeout Error : ", timeouterror)
-            close()
+            result = await asyncio.gather(*[try_reservation(vaccine_type, x) for x in json_data])
+            if True in result:
+                break
 
         except requests.exceptions.ConnectionError as connectionerror:
             print("Connecting Error : ", connectionerror)
+            logging.error(connectionerror)
             close()
 
         except requests.exceptions.HTTPError as httperror:
             print("Http Error : ", httperror)
+            logging.error(httperror)
             close()
 
         except requests.exceptions.SSLError as sslerror:
             print("SSL Error : ", sslerror)
+            logging.error(sslerror)
             close()
 
         except requests.exceptions.RequestException as error:
             print("AnyException : ", error)
+            logging.error(error)
             close()
 
 
