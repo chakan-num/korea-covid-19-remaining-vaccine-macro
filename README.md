@@ -3,7 +3,7 @@ forked from SJang1/korea-covid-19-remaining-vaccine-macro\
 additional modified by chakan-num
 
 
-#vaccine-run-kakao-refac.py:
+# vaccine-run-kakao-refac.py:
 (refactoring from vaccine-run-kakao.py)
 \
 \
@@ -17,7 +17,7 @@ Minor modified
  - console print formatting
  - adding debugging config
 
-#vaccine-run-kakao.py:
+# vaccine-run-kakao.py:
 
 Major modified
  - async programming on vaccine find, reservation
