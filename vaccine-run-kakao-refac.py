@@ -159,6 +159,8 @@ class vaccine_reservation:
     def __init__(self, user_info):
         self._user_info = user_info
         self._config = config_vaccine_reservation()
+        self._config.load_config()
+
         self.search_interval = 0.1  # 잔여백신을 해당 시간마다 한번씩 검색합니다. 단위: 초
         self.request_error_count = 0
         self.request_error_limit = 5
@@ -322,10 +324,16 @@ class config_vaccine_reservation:
     def load_config(self):
         if debug_config:
             self.vaccine_type = "VEN00013"
+            '''2
             self.top_left_longitude = 126.87761193824504
             self.top_left_latitude = 37.49369473195565
             self.bottom_right_longitude = 126.87214034327664
             self.bottom_right_latitude = 37.49806590215318
+            '''
+            self.top_left_longitude = 126.91759051002093
+            self.top_left_latitude = 37.47654763831696
+            self.bottom_right_longitude = 126.83878401599266
+            self.bottom_right_latitude = 37.539490173708266
             return True
 
         config_parser = configparser.ConfigParser()
