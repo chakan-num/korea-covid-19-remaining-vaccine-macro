@@ -285,6 +285,11 @@ class config_vaccine_reservation:
             print("얀센            : 4")
 
             user_input = input("예약시도 진행할 백신을 알려주세요.")
+            try:
+                user_input = int(user_input)
+            except ValueError:
+                print("올바른 백신을 골라주세요.")
+
             if user_input == 1:
                 self.vaccine_type = "VEN00013"
                 break
