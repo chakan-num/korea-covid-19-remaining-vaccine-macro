@@ -15,6 +15,7 @@
 '''
 
 import asyncio
+import webbrowser
 import aiohttp
 import logging
 
@@ -75,7 +76,7 @@ def load_config():
 
 
 #TODO: get new cookie after login
-'''
+
 def check_user_info_loaded():
     print("사용자 정보를 불러오고 있습니다.")
 
@@ -88,13 +89,18 @@ def check_user_info_loaded():
             print("사용자 정보를 불러오는데 실패하였습니다.")
             print("Chrome 브라우저에서 카카오에 제대로 로그인되어있는지 확인해주세요.")
             print("로그인이 되어 있는데도 안된다면, 카카오톡에 들어가서 잔여백신 알림 신청을 한번 해보세요. 정보제공 동의가 나온다면 동의 후 다시 시도해주세요.")
-#TODO: get new cookie after login
+            '''
             webbrowser.open('https://accounts.kakao.com/login?continue=https://vaccine-map.kakao.com/map2?v=1')
             login_try = str.lower(input("로그인을 완료하셨습니까? Y/N"))
             if login_try == "y":
+                self.cookiejar = browser_cookie3.chrome(domain_name=".kakao.com")
                 continue
-            else:
+            elif "y" == str.lower(input("종료하시겠습니까? Y/N")):
                 close()
+            else:
+                print("입력이 잘못되었습니다. 사용자 정보를 다시 불러옵니다.")
+            '''
+            close()
         else:
             user_info = user_info_json.get("user")
 
@@ -135,7 +141,7 @@ def check_user_info_loaded():
                 logging.info("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
                 print("이미 접종이 완료되었거나 예약이 완료된 사용자입니다.")
                 close()
-
+'''
 
 
 def input_config():
@@ -315,6 +321,9 @@ async def find_vaccine(vaccine_type, top_x, top_y, bottom_x, bottom_y):
             print(datetime.now())
             print("조회 병원 수 : %d " % len(json_data), "검색 시간 : %s 초" % round((end_time-start_time), 3))
 
+# Future Work
+# need managing each 'try_reservation' async
+# one of them return True(as 'success'), then cancel others
             result = await asyncio.gather(*[try_reservation(vaccine_type, x) for x in json_data])
             if True in result:
                 break
@@ -341,7 +350,7 @@ async def find_vaccine(vaccine_type, top_x, top_y, bottom_x, bottom_y):
 
 
 
-def main_function():
+def main():
     check_user_info_loaded()
     previous_used_type, previous_top_x, previous_top_y, previous_bottom_x, previous_bottom_y = load_config()
     if previous_used_type is None:
@@ -354,4 +363,4 @@ def main_function():
 
 # ===================================== run ===================================== #
 if __name__ == '__main__':
-    main_function()
+    main()
