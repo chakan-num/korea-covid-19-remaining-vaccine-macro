@@ -77,19 +77,19 @@ def load_config():
 
 #TODO: get new cookie after login
 
-def check_user_info_loaded(self):
+def check_user_info_loaded():
     print("사용자 정보를 불러오고 있습니다.")
 
     while True:
         user_info_api = 'https://vaccine.kakao.com/api/v1/user'
-        user_info_response = requests.get(user_info_api, headers=Headers.headers_vacc, cookies=self.cookiejar, verify=False)
+        user_info_response = requests.get(user_info_api, headers=Headers.headers_vacc, cookies=cookiejar, verify=False)
         user_info_json = json.loads(user_info_response.text)
         if user_info_json.get('error'):
             logging.info("사용자 정보를 불러오는데 실패하였습니다.")
             print("사용자 정보를 불러오는데 실패하였습니다.")
             print("Chrome 브라우저에서 카카오에 제대로 로그인되어있는지 확인해주세요.")
             print("로그인이 되어 있는데도 안된다면, 카카오톡에 들어가서 잔여백신 알림 신청을 한번 해보세요. 정보제공 동의가 나온다면 동의 후 다시 시도해주세요.")
-
+            '''
             webbrowser.open('https://accounts.kakao.com/login?continue=https://vaccine-map.kakao.com/map2?v=1')
             login_try = str.lower(input("로그인을 완료하셨습니까? Y/N"))
             if login_try == "y":
@@ -99,6 +99,8 @@ def check_user_info_loaded(self):
                 close()
             else:
                 print("입력이 잘못되었습니다. 사용자 정보를 다시 불러옵니다.")
+            '''
+            close()
         else:
             user_info = user_info_json.get("user")
 
