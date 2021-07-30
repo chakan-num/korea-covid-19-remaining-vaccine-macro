@@ -1,4 +1,3 @@
-
 # korea-covid-19-remaining-vaccine-macro
 forked from SJang1/korea-covid-19-remaining-vaccine-macro\
 additional modified by chakan-num
@@ -26,3 +25,6 @@ Major modified
  - timeout and retry on vaccine find
 
 Minor modified
+ - console print formatting
+ - adding debugging config
+ - refactoring on duplicated or unnecessary code
